@@ -1,19 +1,101 @@
-# Guide d'installation et de lancement de l'instance AWS avec Terraform
+# Guide d'installation et de déploiement avec Terraform
 
-Ce document vous guide pas à pas pour créer votre compte AWS, configurer votre environnement, et déployer une instance EC2 qui héberge votre application Streamlit grâce à Terraform. Vous n'avez besoin d'aucun code supplémentaire : suivez simplement les instructions ci-dessous.
+Ce guide vous permettra de configurer vos identifiants AWS, d'initialiser et d'exécuter votre infrastructure avec Terraform, et d'accéder à votre application Streamlit.
 
----
+## 1. Configuration de l'environnement
 
-## 1. Créer un compte AWS
+### a. Ajout des commandes dans votre profil de terminal
 
-1. Rendez-vous sur [aws.amazon.com](https://aws.amazon.com/) et inscrivez-vous pour obtenir un compte (profitez de l'offre gratuite si vous êtes éligible).
-2. Une fois le compte créé, connectez-vous à la [console AWS](https://console.aws.amazon.com/).
+Pour éviter de saisir ces commandes à chaque démarrage de terminal, ajoutez-les à votre fichier `~/.bash_profile` ou `~/.zshrc` (selon votre shell). Par exemple :
 
----
+```bash
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=your_preferred_region
+```
 
-## 2. Installer Terraform
+Rechargez votre profil en exécutant :
 
-1. Téléchargez et installez Terraform depuis le [site officiel](https://www.terraform.io/downloads.html).
-2. Vérifiez l'installation en ouvrant un terminal et en tapant :
-   ```bash
-   terraform version
+```bash
+source ~/.bash_profile  # ou, selon votre shell :
+source ~/.zshrc
+```
+
+### b. Utilisation d’un fichier de configuration
+
+Vous pouvez également créer un fichier de configuration AWS pour gérer vos identifiants.
+
+Créez ou modifiez le fichier `~/.aws/credentials` :
+
+```
+[default]
+aws_access_key_id = your_access_key
+aws_secret_access_key = your_secret_key
+```
+
+Ensuite, configurez le fichier `~/.aws/config` :
+
+```
+[default]
+region = your_preferred_region
+output = json
+```
+
+## 2. Déployer l’infrastructure avec Terraform
+
+### a. Initialiser Terraform
+
+Ouvrez un terminal dans le dossier contenant votre configuration Terraform, puis exécutez :
+
+```bash
+terraform init
+```
+
+Cette commande télécharge les plugins nécessaires (providers, etc).
+
+### b. Prévisualiser le plan
+
+Avant d’appliquer les changements, visualisez le plan d’exécution :
+
+```bash
+terraform plan
+```
+
+Examinez la sortie pour vérifier que Terraform va créer les ressources attendues.
+
+### c. Appliquer le plan
+
+Pour déployer votre infrastructure, lancez :
+
+```bash
+terraform apply
+```
+
+Tapez `yes` lorsqu’on vous le demande pour confirmer l'exécution du plan.
+
+## 3. Vérifier et accéder à votre instance
+
+Une fois l'infrastructure déployée, Terraform affichera l’IP publique de l’instance. Pour accéder à votre application Streamlit, ouvrez l’URL suivante dans votre navigateur :
+
+```
+http://<instance_public_ip>:8501
+```
+
+(Remplacez `<instance_public_ip>` par l’adresse affichée par Terraform.)
+
+## 4. Dépannage et ressources supplémentaires
+
+### Vérification de la connexion
+
+Si votre application Streamlit ne répond pas sur le port 8501, vérifiez les points suivants :
+
+- L’instance AWS est en cours d’exécution.
+- Le groupe de sécurité (`aws_security_group.streamlit_sg`) autorise le trafic entrant sur le port 8501.
+- Vos identifiants AWS et la région sont correctement configurés.
+
+### Documentation utile
+
+- [Documentation Terraform](https://www.terraform.io/docs)
+- [Documentation AWS CLI](https://aws.amazon.com/documentation/cli/)
+
+Ce guide vous permet d’installer, configurer et déployer votre infrastructure AWS avec Terraform étape par étape.
