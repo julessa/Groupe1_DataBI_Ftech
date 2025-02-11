@@ -21,9 +21,9 @@ end_date   = pd.to_datetime(end_date)
 
 # Dictionnaire associant chaque actif à son fichier CSV
 asset_files = {
-    "GOLD": "XAU(GOLD).csv",
-    "BTC": "BTC.csv",
-    "S&P500": "S&P500.csv"
+    "GOLD": "./CSV/XAU(GOLD).csv",
+    "BTC": "./CSV/BTC.csv",
+    "S&P500": "./CSV/S&P500.csv"
 }
 
 # ======================================================
