@@ -3,6 +3,19 @@
 Ce guide vous permettra de configurer vos identifiants AWS, d'initialiser et d'exécuter votre infrastructure avec Terraform, et d'accéder à votre application Streamlit.
 
 ## 1. Configuration de l'environnement
+# Obtenir vos identifiants AWS
+
+Pour générer ou récupérer votre AWS Access Key et AWS Secret Access Key, suivez ces étapes :
+
+1. Connectez-vous à la Console de gestion AWS.
+2. Accédez à la section IAM (Identity and Access Management).
+3. Sélectionnez "Utilisateurs" dans le menu de gauche.
+4. Choisissez l’utilisateur concerné ou créez un nouvel utilisateur.
+5. Rendez-vous dans l’onglet "Sécurité" ou "Security credentials".
+6. Si aucune paire d’accès n’existe, cliquez sur "Créer une nouvelle clé d’accès".
+7. Copiez ou téléchargez vos identifiants et conservez-les dans un endroit sécurisé.
+
+Ces clés seront utilisées pour configurer votre environnement AWS et permettre à Terraform d’interagir avec vos ressources.
 
 ### a. Ajout des commandes dans votre profil de terminal
 
@@ -11,7 +24,7 @@ Pour éviter de saisir ces commandes à chaque démarrage de terminal, ajoutez-l
 ```bash
 export AWS_ACCESS_KEY_ID=your_access_key
 export AWS_SECRET_ACCESS_KEY=your_secret_key
-export AWS_DEFAULT_REGION=your_preferred_region
+export AWS_DEFAULT_REGION=eu-west-3
 ```
 
 Rechargez votre profil en exécutant :
