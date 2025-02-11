@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"  # Adaptez la région si nécessaire
+  region = "eu-west-3"
 }
 
 resource "aws_security_group" "streamlit_sg" {
@@ -15,7 +15,7 @@ resource "aws_security_group" "streamlit_sg" {
   }
 
   ingress {
-    description = "Streamlit (par défaut sur le port 8501)"
+    description = "Streamlit (par defaut sur le port 8501)"
     from_port   = 8501
     to_port     = 8501
     protocol    = "tcp"
@@ -31,11 +31,11 @@ resource "aws_security_group" "streamlit_sg" {
 }
 
 resource "aws_instance" "streamlit_instance" {
-  ami           = "ami-04a4acda26ca36de0"  # Remplacez par l'AMI Ubuntu adaptée à votre région (par exemple, Ubuntu 20.04 LTS)
+  ami           = "ami-04a4acda26ca36de0" 
   instance_type = "t2.micro"
   key_name      = var.key_name
 
-  # Injection du script de démarrage
+  # Injection du script de démarrage (user_data.sh)
   user_data = file("user_data.sh")
 
   vpc_security_group_ids = [aws_security_group.streamlit_sg.id]
@@ -48,4 +48,10 @@ resource "aws_instance" "streamlit_instance" {
 variable "key_name" {
   description = "Nom de la clé SSH à utiliser pour l'instance"
   type        = string
+  default     = "my_key"  # Remplacez "my_key" par le nom de votre key pair
+}
+
+output "instance_public_ip" {
+  description = "Adresse IP publique de l'instance"
+  value       = format("IPNET : http://%s:8501/", aws_instance.streamlit_instance.public_ip)
 }
