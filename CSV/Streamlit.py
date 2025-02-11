@@ -5,8 +5,6 @@ import datetime
 import plotly.graph_objs as go
 import os
 
-# Pour la partie prédictions
-from prophet import Prophet
 import matplotlib.pyplot as plt
 
 st.title("Analyse Financière : Analyse, Comparaison et Prédictions")
@@ -211,51 +209,3 @@ elif mode == "Comparaison":
                               yaxis_title="Performance (indexé à 100)",
                               template="plotly_white")
     st.plotly_chart(fig_compare, use_container_width=True)
-
-# ======================================================
-# Mode 3 : Prédictions
-# ======================================================
-elif mode == "Prédictions":
-    asset = st.sidebar.selectbox("Choisissez l'actif pour la prévision :", list(asset_files.keys()))
-    horizon = st.sidebar.number_input("Nombre de jours de prévision", min_value=1, max_value=365, value=30)
-    
-    file_name = asset_files[asset]
-    if not os.path.exists(file_name):
-        st.error(f"Le fichier {file_name} n'existe pas.")
-        st.stop()
-        
-    try:
-        df = pd.read_csv(
-            file_name,
-            parse_dates=['Date'],
-            date_parser=lambda x: pd.to_datetime(x, format='%m/%d/%Y'),
-            index_col='Date'
-        )
-    except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier {file_name}: {e}")
-        st.stop()
-        
-    if df.empty:
-        st.error("Le DataFrame est vide après le chargement du fichier.")
-        st.stop()
-        
-    df.sort_index(inplace=True)
-    # Préparation des données pour Prophet
-    df_prophet = df.reset_index()[['Date', 'Close']].rename(columns={"Date": "ds", "Close": "y"})
-    
-    model = Prophet(daily_seasonality=True)
-    model.fit(df_prophet)
-    
-    future = model.make_future_dataframe(periods=int(horizon))
-    forecast = model.predict(future)
-    
-    # Affichage du graphique de prévision
-    fig_forecast = model.plot(forecast)
-    st.pyplot(fig_forecast)
-    
-    # Affichage des composantes de la prévision
-    fig_components = model.plot_components(forecast)
-    st.pyplot(fig_components)
-    
-    st.subheader("Prévisions récentes")
-    st.write(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail())
