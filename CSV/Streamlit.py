@@ -5,23 +5,23 @@ import datetime
 import plotly.graph_objs as go
 import os
 
-st.title("Analyse Financière : Analyse Individuelle et Comparaison des Actifs")
+# Pour la partie prédictions
+from prophet import Prophet
+import matplotlib.pyplot as plt
 
-# ======================================================
-# Paramètres communs et sélection du mode d'analyse
-# ======================================================
-# Choix du mode via un sélecteur radio
-mode = st.sidebar.radio("Mode d'analyse", ("Analyse Individuelle", "Comparaison"))
+st.title("Analyse Financière : Analyse, Comparaison et Prédictions")
 
-# Sélection de la période d'analyse (commune aux deux modes)
+# Sélection du mode d'analyse via la barre latérale
+mode = st.sidebar.radio("Mode d'analyse", 
+                          ("Analyse Individuelle", "Comparaison", "Prédictions"))
+
+# Sélection commune de la période pour les modes Analyse Individuelle, Comparaison et Prédictions
 start_date = st.sidebar.date_input("Date de début", datetime.date(2020, 1, 1))
-end_date = st.sidebar.date_input("Date de fin", datetime.date.today())
-
-# Conversion des dates en Timestamp (pour compatibilité)
+end_date   = st.sidebar.date_input("Date de fin", datetime.date.today())
 start_date = pd.to_datetime(start_date)
-end_date = pd.to_datetime(end_date)
+end_date   = pd.to_datetime(end_date)
 
-# Dictionnaire associant le nom de l'actif au fichier CSV correspondant
+# Dictionnaire associant chaque actif à son fichier CSV
 asset_files = {
     "GOLD": "XAU(GOLD).csv",
     "BTC": "BTC.csv",
@@ -29,10 +29,9 @@ asset_files = {
 }
 
 # ======================================================
-# Mode 1 : Analyse Individuelle (graphique en bougies + indicateurs)
+# Mode 1 : Analyse Individuelle
 # ======================================================
 if mode == "Analyse Individuelle":
-    # Sélection de l'actif (uniquement un actif)
     asset = st.sidebar.selectbox("Choisissez l'actif :", list(asset_files.keys()))
     
     # Sélection des indicateurs techniques
@@ -69,8 +68,6 @@ if mode == "Analyse Individuelle":
         st.error("Pas de données disponibles pour la période sélectionnée.")
         st.stop()
         
-    # (Le tableau de données n'est pas affiché)
-    
     # Calcul des indicateurs techniques
     df['Rendement'] = df['Close'].pct_change()
     rendement_cumule = (df['Close'].iloc[-1] / df['Close'].iloc[0]) - 1
@@ -82,7 +79,7 @@ if mode == "Analyse Individuelle":
     st.sidebar.write(f"**Volatilité annualisée :** {volatilite:.2%}")
     st.sidebar.write(f"**Sharpe Ratio :** {sharpe_ratio:.2f}")
     
-    # Calcul des moyennes mobiles et autres indicateurs
+    # Moyennes mobiles et autres indicateurs
     df['SMA'] = df['Close'].rolling(window=window_sma).mean()
     df['EMA'] = df['Close'].ewm(span=window_ema, adjust=False).mean()
     ema_12 = df['Close'].ewm(span=12, adjust=False).mean()
@@ -97,7 +94,7 @@ if mode == "Analyse Individuelle":
     RS = roll_up / roll_down
     df['RSI'] = 100.0 - (100.0 / (1.0 + RS))
     
-    # Graphique en bougies avec indicateurs SMA et EMA superposés
+    # Graphique en bougies avec SMA et EMA superposés
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
         x=df.index,
@@ -150,12 +147,11 @@ if mode == "Analyse Individuelle":
                               yaxis=dict(range=[0, 100]),
                               template="plotly_white")
         st.plotly_chart(fig_rsi, use_container_width=True)
-        
+
 # ======================================================
-# Mode 2 : Comparaison (graphique comparatif de performance normalisée)
+# Mode 2 : Comparaison
 # ======================================================
 elif mode == "Comparaison":
-    # Sélection multi-actifs
     assets = st.sidebar.multiselect(
         "Sélectionnez les actifs à comparer",
         list(asset_files.keys()),
@@ -165,7 +161,6 @@ elif mode == "Comparaison":
         st.error("Veuillez sélectionner au moins un actif pour la comparaison.")
         st.stop()
         
-    # Dictionnaire pour stocker les séries normalisées
     normalized_data = {}
     for a in assets:
         file_name = asset_files[a]
@@ -191,8 +186,7 @@ elif mode == "Comparaison":
             st.error(f"Pas de données disponibles pour {a} dans la période sélectionnée.")
             continue
         
-        # Normalisation de la série de prix de clôture
-        # (la première valeur est ramenée à 100)
+        # Normalisation de la série de prix (première valeur ramenée à 100)
         norm_series = df_asset['Close'] / df_asset['Close'].iloc[0] * 100
         normalized_data[a] = norm_series
         
@@ -200,7 +194,7 @@ elif mode == "Comparaison":
         st.error("Aucune donnée disponible pour les actifs sélectionnés dans la période spécifiée.")
         st.stop()
         
-    # Combinaison des séries normalisées dans un DataFrame commun (intersection des dates)
+    # Combinaison des séries normalisées (intersection des dates)
     compare_df = pd.concat(normalized_data, axis=1, join='inner')
     
     # Graphique comparatif
@@ -217,3 +211,51 @@ elif mode == "Comparaison":
                               yaxis_title="Performance (indexé à 100)",
                               template="plotly_white")
     st.plotly_chart(fig_compare, use_container_width=True)
+
+# ======================================================
+# Mode 3 : Prédictions
+# ======================================================
+elif mode == "Prédictions":
+    asset = st.sidebar.selectbox("Choisissez l'actif pour la prévision :", list(asset_files.keys()))
+    horizon = st.sidebar.number_input("Nombre de jours de prévision", min_value=1, max_value=365, value=30)
+    
+    file_name = asset_files[asset]
+    if not os.path.exists(file_name):
+        st.error(f"Le fichier {file_name} n'existe pas.")
+        st.stop()
+        
+    try:
+        df = pd.read_csv(
+            file_name,
+            parse_dates=['Date'],
+            date_parser=lambda x: pd.to_datetime(x, format='%m/%d/%Y'),
+            index_col='Date'
+        )
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier {file_name}: {e}")
+        st.stop()
+        
+    if df.empty:
+        st.error("Le DataFrame est vide après le chargement du fichier.")
+        st.stop()
+        
+    df.sort_index(inplace=True)
+    # Préparation des données pour Prophet
+    df_prophet = df.reset_index()[['Date', 'Close']].rename(columns={"Date": "ds", "Close": "y"})
+    
+    model = Prophet(daily_seasonality=True)
+    model.fit(df_prophet)
+    
+    future = model.make_future_dataframe(periods=int(horizon))
+    forecast = model.predict(future)
+    
+    # Affichage du graphique de prévision
+    fig_forecast = model.plot(forecast)
+    st.pyplot(fig_forecast)
+    
+    # Affichage des composantes de la prévision
+    fig_components = model.plot_components(forecast)
+    st.pyplot(fig_components)
+    
+    st.subheader("Prévisions récentes")
+    st.write(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail())
