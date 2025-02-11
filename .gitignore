@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 DS_Store
+.terraform
+.terraform.lock.hcl
+.terraform.lock.hcl.backup
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.tfstate.lock.info
 # C extensions
 *.so
 
