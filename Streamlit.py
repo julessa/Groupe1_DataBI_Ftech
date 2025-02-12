@@ -5,7 +5,10 @@ import datetime
 import plotly.graph_objs as go
 import os
 
+# Pour la partie prédictions
+from prophet import Prophet
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 st.title("Analyse Financière : Analyse, Comparaison et Prédictions")
 
@@ -13,7 +16,7 @@ st.title("Analyse Financière : Analyse, Comparaison et Prédictions")
 mode = st.sidebar.radio("Mode d'analyse", 
                           ("Analyse Individuelle", "Comparaison", "Prédictions"))
 
-# Sélection commune de la période pour les modes Analyse Individuelle, Comparaison et Prédictions
+# Sélection commune de la période pour tous les modes
 start_date = st.sidebar.date_input("Date de début", datetime.date(2020, 1, 1))
 end_date   = st.sidebar.date_input("Date de fin", datetime.date.today())
 start_date = pd.to_datetime(start_date)
@@ -37,8 +40,14 @@ if mode == "Analyse Individuelle":
     afficher_EMA = st.sidebar.checkbox("Afficher EMA", value=True)
     afficher_MACD = st.sidebar.checkbox("Afficher MACD", value=True)
     afficher_RSI = st.sidebar.checkbox("Afficher RSI", value=True)
+    afficher_BB = st.sidebar.checkbox("Afficher Bollinger Bands", value=True)
+    
     window_sma = st.sidebar.slider("Période SMA", min_value=5, max_value=100, value=20)
     window_ema = st.sidebar.slider("Période EMA", min_value=5, max_value=100, value=20)
+    
+    if afficher_BB:
+        window_bb = st.sidebar.slider("Période BB", min_value=5, max_value=100, value=20)
+        multiplier_bb = st.sidebar.number_input("Multiplicateur BB", min_value=1.0, max_value=5.0, value=2.0, step=0.1)
     
     file_name = asset_files[asset]
     if not os.path.exists(file_name):
@@ -80,10 +89,12 @@ if mode == "Analyse Individuelle":
     # Moyennes mobiles et autres indicateurs
     df['SMA'] = df['Close'].rolling(window=window_sma).mean()
     df['EMA'] = df['Close'].ewm(span=window_ema, adjust=False).mean()
+    
     ema_12 = df['Close'].ewm(span=12, adjust=False).mean()
     ema_26 = df['Close'].ewm(span=26, adjust=False).mean()
     df['MACD'] = ema_12 - ema_26
     df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    
     delta = df['Close'].diff()
     up = delta.clip(lower=0)
     down = -delta.clip(upper=0)
@@ -92,7 +103,14 @@ if mode == "Analyse Individuelle":
     RS = roll_up / roll_down
     df['RSI'] = 100.0 - (100.0 / (1.0 + RS))
     
-    # Graphique en bougies avec SMA et EMA superposés
+    # Calcul des Bollinger Bands si sélectionné
+    if afficher_BB:
+        df['BB_MA'] = df['Close'].rolling(window=window_bb).mean()
+        df['BB_std'] = df['Close'].rolling(window=window_bb).std()
+        df['BB_upper'] = df['BB_MA'] + (multiplier_bb * df['BB_std'])
+        df['BB_lower'] = df['BB_MA'] - (multiplier_bb * df['BB_std'])
+    
+    # Graphique en bougies avec indicateurs
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
         x=df.index,
@@ -110,6 +128,20 @@ if mode == "Analyse Individuelle":
         fig.add_trace(go.Scatter(x=df.index, y=df['EMA'],
                                  mode='lines',
                                  name=f'EMA ({window_ema} jours)'))
+    if afficher_BB:
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_upper'],
+                                 mode='lines',
+                                 name='BB Upper',
+                                 line=dict(color='purple', dash='dash')))
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_lower'],
+                                 mode='lines',
+                                 name='BB Lower',
+                                 line=dict(color='purple', dash='dash')))
+        fig.add_trace(go.Scatter(x=df.index, y=df['BB_MA'],
+                                 mode='lines',
+                                 name='BB MA',
+                                 line=dict(color='orange', dash='dot')))
+    
     fig.update_layout(title=f"Évolution de {asset}",
                       xaxis_title="Date",
                       yaxis_title="Prix",
@@ -209,3 +241,51 @@ elif mode == "Comparaison":
                               yaxis_title="Performance (indexé à 100)",
                               template="plotly_white")
     st.plotly_chart(fig_compare, use_container_width=True)
+
+# ======================================================
+# Mode 3 : Prédictions
+# ======================================================
+elif mode == "Prédictions":
+    asset = st.sidebar.selectbox("Choisissez l'actif pour la prévision :", list(asset_files.keys()))
+    horizon = st.sidebar.number_input("Nombre de jours de prévision", min_value=1, max_value=365, value=30)
+    
+    file_name = asset_files[asset]
+    if not os.path.exists(file_name):
+        st.error(f"Le fichier {file_name} n'existe pas.")
+        st.stop()
+        
+    try:
+        df = pd.read_csv(
+            file_name,
+            parse_dates=['Date'],
+            date_parser=lambda x: pd.to_datetime(x, format='%m/%d/%Y'),
+            index_col='Date'
+        )
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier {file_name}: {e}")
+        st.stop()
+        
+    if df.empty:
+        st.error("Le DataFrame est vide après le chargement du fichier.")
+        st.stop()
+        
+    df.sort_index(inplace=True)
+    # Préparation des données pour Prophet
+    df_prophet = df.reset_index()[['Date', 'Close']].rename(columns={"Date": "ds", "Close": "y"})
+    
+    model = Prophet(daily_seasonality=True)
+    model.fit(df_prophet)
+    
+    future = model.make_future_dataframe(periods=int(horizon))
+    forecast = model.predict(future)
+    
+    # Affichage du graphique de prévision
+    fig_forecast = model.plot(forecast)
+    st.pyplot(fig_forecast)
+    
+    # Affichage des composantes de la prévision
+    fig_components = model.plot_components(forecast)
+    st.pyplot(fig_components)
+    
+    st.subheader("Prévisions récentes")
+    st.write(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail())
