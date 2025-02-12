@@ -24,9 +24,9 @@ end_date   = pd.to_datetime(end_date)
 
 # Dictionnaire associant chaque actif à son fichier CSV
 asset_files = {
-    "GOLD": "./CSV/XAU(GOLD).csv",
-    "BTC": "./CSV/BTC.csv",
-    "S&P500": "./CSV/S&P500.csv"
+    "GOLD": "./CSV/df_gold.csv",
+    "BTC": "./CSV/df_btc.csv",
+    "S&P500": "./CSV/df_sp500.csv"
 }
 
 # ======================================================
@@ -58,7 +58,7 @@ if mode == "Analyse Individuelle":
         df = pd.read_csv(
             file_name,
             parse_dates=['Date'],
-            date_parser=lambda x: pd.to_datetime(x, format='%m/%d/%Y'),
+            date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'),
             index_col='Date'
         )
     except Exception as e:
@@ -145,7 +145,8 @@ if mode == "Analyse Individuelle":
     fig.update_layout(title=f"Évolution de {asset}",
                       xaxis_title="Date",
                       yaxis_title="Prix",
-                      template="plotly_white")
+                      template="plotly_white",
+                      height=600)  # Graphique agrandi
     st.plotly_chart(fig, use_container_width=True)
     
     # Graphique MACD
@@ -160,7 +161,8 @@ if mode == "Analyse Individuelle":
         fig_macd.update_layout(title="MACD",
                                xaxis_title="Date",
                                yaxis_title="Valeur",
-                               template="plotly_white")
+                               template="plotly_white",
+                               height=400)
         st.plotly_chart(fig_macd, use_container_width=True)
     
     # Graphique RSI
@@ -175,7 +177,8 @@ if mode == "Analyse Individuelle":
                               xaxis_title="Date",
                               yaxis_title="RSI",
                               yaxis=dict(range=[0, 100]),
-                              template="plotly_white")
+                              template="plotly_white",
+                              height=400)
         st.plotly_chart(fig_rsi, use_container_width=True)
 
 # ======================================================
@@ -201,7 +204,7 @@ elif mode == "Comparaison":
             df_asset = pd.read_csv(
                 file_name,
                 parse_dates=['Date'],
-                date_parser=lambda x: pd.to_datetime(x, format='%m/%d/%Y'),
+                date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'),
                 index_col='Date'
             )
         except Exception as e:
@@ -227,7 +230,7 @@ elif mode == "Comparaison":
     # Combinaison des séries normalisées (intersection des dates)
     compare_df = pd.concat(normalized_data, axis=1, join='inner')
     
-    # Graphique comparatif
+    # Graphique comparatif agrandi
     fig_compare = go.Figure()
     for asset_name in compare_df.columns:
         fig_compare.add_trace(go.Scatter(
@@ -239,8 +242,17 @@ elif mode == "Comparaison":
     fig_compare.update_layout(title="Comparaison des performances normalisées",
                               xaxis_title="Date",
                               yaxis_title="Performance (indexé à 100)",
-                              template="plotly_white")
+                              template="plotly_white",
+                              height=600)
     st.plotly_chart(fig_compare, use_container_width=True)
+    
+    # Ajout d'éléments supplémentaires : statistiques descriptives et performance finale
+    st.subheader("Statistiques descriptives")
+    st.dataframe(compare_df.describe())
+    
+    st.subheader("Performance finale (dernier jour)")
+    final_performance = compare_df.iloc[-1]
+    st.write(final_performance)
 
 # ======================================================
 # Mode 3 : Prédictions
@@ -258,7 +270,7 @@ elif mode == "Prédictions":
         df = pd.read_csv(
             file_name,
             parse_dates=['Date'],
-            date_parser=lambda x: pd.to_datetime(x, format='%m/%d/%Y'),
+            date_parser=lambda x: pd.to_datetime(x, format='%Y-%m-%d'),
             index_col='Date'
         )
     except Exception as e:
@@ -281,10 +293,12 @@ elif mode == "Prédictions":
     
     # Affichage du graphique de prévision
     fig_forecast = model.plot(forecast)
+    fig_forecast.set_size_inches(12, 8)  # Agrandit le graphique
     st.pyplot(fig_forecast)
     
     # Affichage des composantes de la prévision
     fig_components = model.plot_components(forecast)
+    fig_components.set_size_inches(12, 8)
     st.pyplot(fig_components)
     
     st.subheader("Prévisions récentes")
