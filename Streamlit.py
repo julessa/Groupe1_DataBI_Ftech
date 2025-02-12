@@ -6,14 +6,14 @@ import plotly.graph_objs as go
 import os
 
 # Pour la partie prédictions
+from prophet import Prophet
 import matplotlib.pyplot as plt
 import plotly.express as px
 
 st.title("Analyse Financière : Analyse, Comparaison et Prédictions")
 
 # Sélection du mode d'analyse via la barre latérale
-mode = st.sidebar.radio("Mode d'analyse", 
-                          ("Analyse Individuelle", "Comparaison", "Prédictions"))
+mode = st.sidebar.radio("Mode d'analyse", ("Analyse Individuelle", "Comparaison", "Prédictions"))
 
 # Sélection commune de la période pour tous les modes
 start_date = st.sidebar.date_input("Date de début", datetime.date(2020, 1, 1))
@@ -74,7 +74,7 @@ if mode == "Analyse Individuelle":
         st.error("Pas de données disponibles pour la période sélectionnée.")
         st.stop()
         
-    # Calcul des indicateurs techniques
+    # Calcul des indicateurs techniques pour affichage individuel
     df['Rendement'] = df['Close'].pct_change()
     rendement_cumule = (df['Close'].iloc[-1] / df['Close'].iloc[0]) - 1
     volatilite = df['Rendement'].std() * np.sqrt(252)
@@ -145,7 +145,7 @@ if mode == "Analyse Individuelle":
                       xaxis_title="Date",
                       yaxis_title="Prix",
                       template="plotly_white",
-                      height=600)  # Graphique agrandi
+                      height=600)
     st.plotly_chart(fig, use_container_width=True)
     
     # Graphique MACD
@@ -194,6 +194,8 @@ elif mode == "Comparaison":
         st.stop()
         
     normalized_data = {}
+    metrics_data = {}  # Dictionnaire pour stocker les indicateurs de performance
+    # Pour chaque actif sélectionné, on calcule la série normalisée et les indicateurs
     for a in assets:
         file_name = asset_files[a]
         if not os.path.exists(file_name):
@@ -218,9 +220,35 @@ elif mode == "Comparaison":
             st.error(f"Pas de données disponibles pour {a} dans la période sélectionnée.")
             continue
         
-        # Normalisation de la série de prix (première valeur ramenée à 100)
+        # Série normalisée (première valeur ramenée à 100)
         norm_series = df_asset['Close'] / df_asset['Close'].iloc[0] * 100
         normalized_data[a] = norm_series
+        
+        # Calcul des indicateurs de performance
+        returns = df_asset['Close'].pct_change()
+        volatility = returns.std() * np.sqrt(252) * 100  # en %
+        sharpe = (returns.mean() / returns.std()) * np.sqrt(252) if returns.std() != 0 else np.nan
+        # Calcul du RSI moyen sur une fenêtre de 14 jours
+        delta = df_asset['Close'].diff()
+        up = delta.clip(lower=0)
+        down = -delta.clip(upper=0)
+        roll_up = up.rolling(window=14).mean()
+        roll_down = down.rolling(window=14).mean()
+        RSI = 100.0 - (100.0 / (1.0 + roll_up / roll_down))
+        avg_RSI = RSI.mean()
+        # Rendement annualisé (%) calculé à partir du ratio final/premier, annualisé sur la durée du DataFrame
+        n = len(df_asset)
+        if n > 1:
+            annual_return = ((df_asset['Close'].iloc[-1] / df_asset['Close'].iloc[0]) ** (252 / n) - 1) * 100
+        else:
+            annual_return = np.nan
+        
+        metrics_data[a] = {
+            "Volatilité": round(volatility, 2),
+            "Ratio de Sharpe": round(sharpe, 2),
+            "RSI moyen": round(avg_RSI, 2),
+            "Rendement annualisé": round(annual_return, 2)
+        }
         
     if not normalized_data:
         st.error("Aucune donnée disponible pour les actifs sélectionnés dans la période spécifiée.")
@@ -245,13 +273,19 @@ elif mode == "Comparaison":
                               height=600)
     st.plotly_chart(fig_compare, use_container_width=True)
     
-    # Ajout d'éléments supplémentaires : statistiques descriptives et performance finale
-    st.subheader("Statistiques descriptives")
-    st.dataframe(compare_df.describe())
+    # Création du tableau comparatif des indicateurs de performance
+    # On souhaite que le tableau comporte 4 colonnes : Indicateur, BTC, GOLD, S&P500
+    desired_order = ["BTC", "GOLD", "S&P500"]
+    final_order = [a for a in desired_order if a in metrics_data]
+    indicators = ["Volatilité", "Ratio de Sharpe", "RSI moyen", "Rendement annualisé"]
+    table_data = {"Indicateur": indicators}
+    for a in final_order:
+        table_data[a] = [f"{metrics_data[a][ind]}%" if ind == "Rendement annualisé" else metrics_data[a][ind] for ind in indicators]
+    metrics_df = pd.DataFrame(table_data)
     
-    st.subheader("Performance finale (dernier jour)")
-    final_performance = compare_df.iloc[-1]
-    st.write(final_performance)
+    st.subheader("Comparaison des indicateurs de performance")
+    # Conversion du DataFrame en HTML sans index pour un meilleur rendu
+    st.markdown(metrics_df.to_html(index=False), unsafe_allow_html=True)
 
 # ======================================================
 # Mode 3 : Prédictions
