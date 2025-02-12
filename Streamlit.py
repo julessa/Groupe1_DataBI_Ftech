@@ -6,7 +6,6 @@ import plotly.graph_objs as go
 import os
 
 # Pour la partie prédictions
-from prophet import Prophet
 import matplotlib.pyplot as plt
 import plotly.express as px
 
