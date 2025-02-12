@@ -1,4 +1,6 @@
 import streamlit as st
+st.set_page_config(layout="wide")  # Affichage en mode full-width
+
 import pandas as pd
 import numpy as np
 import datetime
@@ -120,26 +122,48 @@ if mode == "Analyse Individuelle":
         name='Bougies'
     ))
     if afficher_SMA:
-        fig.add_trace(go.Scatter(x=df.index, y=df['SMA'],
-                                 mode='lines',
-                                 name=f'SMA ({window_sma} jours)'))
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df['SMA'],
+            mode='lines',
+            name=f'SMA ({window_sma} jours)'
+        ))
     if afficher_EMA:
-        fig.add_trace(go.Scatter(x=df.index, y=df['EMA'],
-                                 mode='lines',
-                                 name=f'EMA ({window_ema} jours)'))
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df['EMA'],
+            mode='lines',
+            name=f'EMA ({window_ema} jours)'
+        ))
     if afficher_BB:
-        fig.add_trace(go.Scatter(x=df.index, y=df['BB_upper'],
-                                 mode='lines',
-                                 name='BB Upper',
-                                 line=dict(color='purple', dash='dash')))
-        fig.add_trace(go.Scatter(x=df.index, y=df['BB_lower'],
-                                 mode='lines',
-                                 name='BB Lower',
-                                 line=dict(color='purple', dash='dash')))
-        fig.add_trace(go.Scatter(x=df.index, y=df['BB_MA'],
-                                 mode='lines',
-                                 name='BB MA',
-                                 line=dict(color='orange', dash='dot')))
+        # Trace pour la bande supérieure (invisible)
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df['BB_upper'],
+            mode='lines',
+            line=dict(color='rgba(128, 0, 128, 0)'),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        # Trace pour la bande inférieure avec zone remplie entre BB_upper et BB_lower
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df['BB_lower'],
+            mode='lines',
+            fill='tonexty',
+            fillcolor='rgba(128, 0, 128, 0.2)',  # couleur violet avec 20% d'opacité
+            line=dict(color='rgba(128, 0, 128, 0)'),
+            name='Bollinger Bands',
+            hoverinfo='skip'
+        ))
+        # Trace pour la moyenne des Bollinger Bands
+        fig.add_trace(go.Scatter(
+            x=df.index,
+            y=df['BB_MA'],
+            mode='lines',
+            name='BB MA',
+            line=dict(color='orange')
+        ))
     
     fig.update_layout(title=f"Évolution de {asset}",
                       xaxis_title="Date",
@@ -151,12 +175,18 @@ if mode == "Analyse Individuelle":
     # Graphique MACD
     if afficher_MACD:
         fig_macd = go.Figure()
-        fig_macd.add_trace(go.Scatter(x=df.index, y=df['MACD'],
-                                      mode='lines',
-                                      name='MACD'))
-        fig_macd.add_trace(go.Scatter(x=df.index, y=df['Signal_Line'],
-                                      mode='lines',
-                                      name='Signal Line'))
+        fig_macd.add_trace(go.Scatter(
+            x=df.index,
+            y=df['MACD'],
+            mode='lines',
+            name='MACD'
+        ))
+        fig_macd.add_trace(go.Scatter(
+            x=df.index,
+            y=df['Signal_Line'],
+            mode='lines',
+            name='Signal Line'
+        ))
         fig_macd.update_layout(title="MACD",
                                xaxis_title="Date",
                                yaxis_title="Valeur",
@@ -167,9 +197,12 @@ if mode == "Analyse Individuelle":
     # Graphique RSI
     if afficher_RSI:
         fig_rsi = go.Figure()
-        fig_rsi.add_trace(go.Scatter(x=df.index, y=df['RSI'],
-                                     mode='lines',
-                                     name='RSI'))
+        fig_rsi.add_trace(go.Scatter(
+            x=df.index,
+            y=df['RSI'],
+            mode='lines',
+            name='RSI'
+        ))
         fig_rsi.add_hline(y=70, line_dash="dash", line_color="red")
         fig_rsi.add_hline(y=30, line_dash="dash", line_color="green")
         fig_rsi.update_layout(title="RSI (Relative Strength Index)",
@@ -274,7 +307,6 @@ elif mode == "Comparaison":
     st.plotly_chart(fig_compare, use_container_width=True)
     
     # Création du tableau comparatif des indicateurs de performance
-    # On souhaite que le tableau comporte 4 colonnes : Indicateur, BTC, GOLD, S&P500
     desired_order = ["BTC", "GOLD", "S&P500"]
     final_order = [a for a in desired_order if a in metrics_data]
     indicators = ["Volatilité", "Ratio de Sharpe", "RSI moyen", "Rendement annualisé"]
@@ -284,9 +316,10 @@ elif mode == "Comparaison":
     metrics_df = pd.DataFrame(table_data)
     
     st.subheader("Comparaison des indicateurs de performance")
-    # Conversion du DataFrame en HTML sans index pour un meilleur rendu
     st.markdown(metrics_df.to_html(index=False), unsafe_allow_html=True)
 
 # ======================================================
 # Mode 3 : Prédictions
 # ======================================================
+elif mode == "Prédictions":
+    st.info("La section des prédictions est en cours de développement.")
