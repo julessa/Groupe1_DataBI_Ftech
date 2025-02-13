@@ -209,7 +209,7 @@ if mode == "Analyse Individuelle":
             line=dict(color='orange')
         ))
     
-    fig.update_layout(title=f"Évolution de {asset}",
+    fig.update_layout(title=f"Évolution du {asset}",
                       xaxis_title="Date",
                       yaxis_title="Prix",
                       template="plotly_white",
