@@ -6,7 +6,7 @@ apt-get install -y python3-pip git
 
 git clone https://github.com/julessa/Groupe1_DataBI_Ftech.git
 cd Groupe1_DataBI_Ftech
-pip install streamlit pandas numpy matplotlib seaborn plotly
+pip install streamlit pandas numpy matplotlib seaborn plotly prophet
 
 #pip install -r requirements.txt
 
