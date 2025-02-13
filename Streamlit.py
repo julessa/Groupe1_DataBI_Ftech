@@ -288,4 +288,4 @@ elif mode == "Prédictions":
     st.pyplot(fig_components)
     
     st.subheader("Prévisions récentes")
-    st.write(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail())
+    st.write(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail()) 
