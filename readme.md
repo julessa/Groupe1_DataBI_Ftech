@@ -1,7 +1,7 @@
-# Groupe 1 - Projet Data & IA F/TECH
+# Groupe 1 - Projet Data BI
 
 ## Description
-Ce projet s'inscrit dans le cadre de la formation F/TECH, axé sur la Data Science et l'Intelligence Artificielle. Notre objectif est d'explorer et d'analyser des données pour créer des solutions innovantes basées sur l'IA.
+Ce projet s'inscrit dans le cadre de la formation DataBI, axé sur la Data Science et l'Intelligence Artificielle. Notre objectif est d'explorer et d'analyser des données financière pour créer des analyses basées sur l'IA.
 
 ## Structure du Projet
 ```
@@ -15,7 +15,7 @@ Ce projet s'inscrit dans le cadre de la formation F/TECH, axé sur la Data Scien
 ## Installation
 ```bash
 # Cloner le repository
-git clone https://github.com/[username]/Groupe1_DataIA_Ftech.git
+git clone https://github.com/julessa/Groupe1_DataBI_Ftech
 cd Groupe1_DataIA_Ftech
 
 pip install requirement.txt
