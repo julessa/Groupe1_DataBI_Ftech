@@ -322,4 +322,90 @@ elif mode == "Comparaison":
 # Mode 3 : Prédictions
 # ======================================================
 elif mode == "Prédictions":
-    st.info("La section des prédictions est en cours de développement.")
+    st.header("Prédictions des prix - Modèle Prophet")
+    
+    def load_and_plot(asset_name, historical_path, forecast_path, perf_path):
+        try:
+            # Chargement des données
+            df_hist = pd.read_csv(historical_path, parse_dates=['Date'])
+            df_hist.rename(columns={'Date': 'ds', 'Close': 'y'}, inplace=True)
+            
+            forecast = pd.read_csv(forecast_path, parse_dates=['ds'])
+            performance = pd.read_csv(perf_path)
+            
+            # Création du graphique
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=df_hist['ds'],
+                y=df_hist['y'],
+                name='Historique',
+                line=dict(color='#1f77b4')
+            ))
+            fig.add_trace(go.Scatter(
+                x=forecast['ds'],
+                y=forecast['yhat'],
+                name='Prévision',
+                line=dict(color='#ff7f0e')
+            ))
+            fig.add_trace(go.Scatter(
+                x=forecast['ds'],
+                y=forecast['yhat_upper'],
+                fill=None,
+                line=dict(color='rgba(255,127,14,0.1)'),
+                name='Intervalle de confiance'
+            ))
+            fig.add_trace(go.Scatter(
+                x=forecast['ds'],
+                y=forecast['yhat_lower'],
+                fill='tonexty',
+                line=dict(color='rgba(255,127,14,0.1)'),
+                showlegend=False
+            ))
+            
+            fig.update_layout(
+                title=f"Prévision du prix - {asset_name}",
+                xaxis_title="Date",
+                yaxis_title="Prix",
+                hovermode="x unified"
+            )
+            
+            # Affichage du graphique
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Calcul du score
+            horizon_180 = performance[performance['horizon'] == '180 days']
+            if not horizon_180.empty:
+                rmse = horizon_180['rmse'].values[0]
+                st.metric(label="Performance du modèle (RMSE sur 180 jours)", value=f"{rmse:.2f}")
+            else:
+                st.warning("Données de performance indisponibles pour cet horizon")
+
+        except Exception as e:
+            st.error(f"Erreur de chargement pour {asset_name} : {str(e)}")
+
+    # Bitcoin
+    st.subheader("Bitcoin")
+    load_and_plot(
+        "Bitcoin",
+        "./CSV/df_btc.csv",
+        "./CSV/prediction/forecast_btc.csv",
+        "./CSV/prediction/performance_btc.csv"
+    )
+
+    # S&P 500
+    st.subheader("S&P 500")
+    load_and_plot(
+        "S&P 500",
+        "./CSV/df_sp500.csv", 
+        "./CSV/prediction/forecast_sp500.csv",
+        "./CSV/prediction/performance_sp500.csv"
+    )
+
+    # Or
+    st.subheader("Or")
+    load_and_plot(
+        "Or",
+        "./CSV/df_gold.csv",
+        "./CSV/prediction/forecast_gold.csv",
+        "./CSV/prediction/performance_gold.csv"
+    )
