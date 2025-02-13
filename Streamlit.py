@@ -1,6 +1,50 @@
 import streamlit as st
 st.set_page_config(layout="wide")  # Affichage en mode full-width
 
+# ======================================================
+# Pop-up de conditions légales
+# ======================================================
+if 'accepted' not in st.session_state:
+    st.markdown("""
+        <style>
+            .main * {
+                filter: blur(5px);
+                pointer-events: none;
+                user-select: none;
+            }
+            button {
+                background: #4CAF50 !important;
+                color: white !important;
+                border: none;
+                padding: 10px 25px;
+                border-radius: 5px;
+                margin-top: 15px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+
+        
+        st.markdown("<h3>⚠️ Avertissement Légal - Risques d'Investissement</h3>", unsafe_allow_html=True)
+        st.markdown("""
+            <p>Les transactions sur instruments financiers comportent un <strong>niveau élevé de risque</strong> et peuvent ne pas convenir à tous les investisseurs.</p>
+            <p>Il est possible de subir des pertes supérieures à votre investissement initial.</p>
+            <p>Les performances passées ne préjugent pas des résultats futurs.</p>
+            <p>En cliquant sur "Accepter", vous reconnaissez avoir pris connaissance de ces risques.</p>
+        """, unsafe_allow_html=True)
+        
+        # Bouton centré, apparaissant sous le contenu de la pop-up
+        if st.button("Accepter les conditions d'utilisation"):
+            st.session_state.accepted = True
+            st.rerun()
+        
+        # Fermer la div de la pop-up
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.stop()  # Bloque l'exécution du reste de l'application
+
+
 import pandas as pd
 import numpy as np
 import datetime
