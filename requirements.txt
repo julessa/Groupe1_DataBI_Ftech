@@ -2,3 +2,8 @@ streamlit
 pandas
 seaborn
 dotenv
+treamlit 
+numpy 
+matplotlib
+plotly 
+prophet
